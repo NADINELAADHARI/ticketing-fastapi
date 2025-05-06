@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>CNAM - Obtenir un Ticket</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      text-align: center;
+      padding: 50px;
+    }
+
+    h1 {
+      color: #005baa;
+    }
+
+    select, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #005baa;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+
+    button:hover {
+      background-color: #003d7a;
+    }
+
+    .result {
+      margin: 30px auto;
+      padding: 20px;
+      max-width: 500px;
+      background-color: #e6f2ff;
+      border: 1px solid #b3d1ff;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .ticket-info {
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Bienvenue à CNAM</h1>
+  <p>Choisissez un service :</p>
+
+  <select id="serviceSelect">
+    <option value="Légalisation">Légalisation</option>
+    <option value="Extrait de naissance">Extrait de naissance</option>
+    <option value="Copie conforme">Copie conforme</option>
+  </select>
+
+  <br>
+  <button onclick="obtenirTicket()">Obtenir un Ticket</button>
+
+  <div class="result" id="resultBox">
+    <h2>Votre ticket</h2>
+    <div class="ticket-info">
+      <strong>Numéro :</strong> <span id="ticketNumber"></span>
+    </div>
+    <div class="ticket-info">
+      <strong>Service :</strong> <span id="ticketService"></span>
+    </div>
+    <div class="ticket-info">
+      <strong>Personnes devant vous :</strong> <span id="peopleAhead"></span>
+    </div>
+    <div class="ticket-info">
+      <strong>Temps estimé :</strong> <span id="estimatedTime"></span> minutes
+    </div>
+  </div>
+
+  <script>
+    async function obtenirTicket() {
+      const service = document.getElementById("serviceSelect").value;
+      const resultBox = document.getElementById("resultBox");
+
+      // Afficher un message de chargement
+      resultBox.style.display = "block";
+      resultBox.innerHTML = "<p>Création de votre ticket en cours...</p>";
+
+      try {
+        const apiUrl = "https://ticketing-fastapi.onrender.com/api/tickets";
+
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ service: service, is_processed: false })
+        });
+
+        if (!response.ok) throw new Error("Erreur lors de la création du ticket");
+
+        const ticket = await response.json();
+
+        // Récupérer le nombre total de tickets
+        const countResponse = await fetch(apiUrl + "/count");
+        const countData = await countResponse.json();
+        const peopleAhead = countData.count - 1;
+        const estimatedTime = peopleAhead * 3; // 3 minutes par personne
+
+        // Afficher les résultats
+        resultBox.innerHTML = `
+          <h2>Votre ticket</h2>
+          <div class="ticket-info">
+            <strong>Numéro :</strong> ${ticket.id}
+          </div>
+          <div class="ticket-info">
+            <strong>Service :</strong> ${ticket.service}
+          </div>
+          <div class="ticket-info">
+            <strong>Personnes devant vous :</strong> ${peopleAhead}
+          </div>
+          <div class="ticket-info">
+            <strong>Temps estimé :</strong> ${estimatedTime} minutes
+          </div>
+        `;
+      } catch (error) {
+        resultBox.innerHTML = `<p style="color:red">Erreur: ${error.message}</p>`;
+      }
+    }
+  </script>
+
+</body>
+</html>
