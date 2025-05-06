@@ -2,32 +2,50 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CNAM - Obtenir un Ticket</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background-color: #f2f2f2;
       text-align: center;
-      padding: 50px;
+      padding: 20px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
 
     h1 {
       color: #005baa;
+      margin-bottom: 30px;
     }
 
-    select, button {
-      padding: 10px;
-      margin: 10px;
+    select {
+      padding: 12px;
       font-size: 16px;
+      border: 1px solid #ddd;
       border-radius: 5px;
-      border: 1px solid #ccc;
+      width: 80%;
+      max-width: 300px;
     }
 
     button {
+      padding: 12px 25px;
+      font-size: 16px;
       background-color: #005baa;
       color: white;
-      cursor: pointer;
       border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 20px 0;
+      transition: background-color 0.3s;
     }
 
     button:hover {
@@ -37,77 +55,83 @@
     .result {
       margin: 30px auto;
       padding: 20px;
-      max-width: 500px;
       background-color: #e6f2ff;
       border: 1px solid #b3d1ff;
       border-radius: 10px;
       display: none;
+      max-width: 500px;
     }
 
     .ticket-info {
       margin: 15px 0;
+      font-size: 18px;
+    }
+
+    .error {
+      color: red;
+      margin: 20px 0;
+    }
+
+    .loading {
+      color: #005baa;
     }
   </style>
 </head>
 <body>
+  <div class="container">
+    <h1>Bienvenue à CNAM</h1>
+    <p>Choisissez un service :</p>
 
-  <h1>Bienvenue à CNAM</h1>
-  <p>Choisissez un service :</p>
+    <select id="serviceSelect">
+      <option value="Légalisation">Légalisation</option>
+      <option value="Extrait de naissance">Extrait de naissance</option>
+      <option value="Copie conforme">Copie conforme</option>
+    </select>
 
-  <select id="serviceSelect">
-    <option value="Légalisation">Légalisation</option>
-    <option value="Extrait de naissance">Extrait de naissance</option>
-    <option value="Copie conforme">Copie conforme</option>
-  </select>
+    <br>
+    <button onclick="obtenirTicket()">Obtenir un Ticket</button>
 
-  <br>
-  <button onclick="obtenirTicket()">Obtenir un Ticket</button>
-
-  <div class="result" id="resultBox">
-    <h2>Votre ticket</h2>
-    <div class="ticket-info">
-      <strong>Numéro :</strong> <span id="ticketNumber"></span>
-    </div>
-    <div class="ticket-info">
-      <strong>Service :</strong> <span id="ticketService"></span>
-    </div>
-    <div class="ticket-info">
-      <strong>Personnes devant vous :</strong> <span id="peopleAhead"></span>
-    </div>
-    <div class="ticket-info">
-      <strong>Temps estimé :</strong> <span id="estimatedTime"></span> minutes
-    </div>
+    <div class="result" id="resultBox"></div>
   </div>
 
   <script>
     async function obtenirTicket() {
       const service = document.getElementById("serviceSelect").value;
       const resultBox = document.getElementById("resultBox");
-
-      // Afficher un message de chargement
+      
+      // Afficher le loading
       resultBox.style.display = "block";
-      resultBox.innerHTML = "<p>Création de votre ticket en cours...</p>";
+      resultBox.innerHTML = '<p class="loading">Création de votre ticket en cours...</p>';
 
       try {
         const apiUrl = "https://ticketing-fastapi.onrender.com/api/tickets";
-
+        
         const response = await fetch(apiUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ service: service, is_processed: false })
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ 
+            service: service, 
+            is_processed: false 
+          })
         });
 
-        if (!response.ok) throw new Error("Erreur lors de la création du ticket");
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Erreur lors de la création du ticket");
+        }
 
         const ticket = await response.json();
 
-        // Récupérer le nombre total de tickets
+        // Récupérer le nombre de tickets
         const countResponse = await fetch(apiUrl + "/count");
         const countData = await countResponse.json();
-        const peopleAhead = countData.count - 1;
-        const estimatedTime = peopleAhead * 3; // 3 minutes par personne
+        const peopleAhead = Math.max(0, countData.count - 1);
+        const estimatedTime = peopleAhead * 3;
 
-        // Afficher les résultats
+        // Afficher le résultat
         resultBox.innerHTML = `
           <h2>Votre ticket</h2>
           <div class="ticket-info">
@@ -122,12 +146,16 @@
           <div class="ticket-info">
             <strong>Temps estimé :</strong> ${estimatedTime} minutes
           </div>
+          <button onclick="window.location.reload()">Nouveau Ticket</button>
         `;
       } catch (error) {
-        resultBox.innerHTML = `<p style="color:red">Erreur: ${error.message}</p>`;
+        resultBox.innerHTML = `
+          <p class="error">Erreur: ${error.message}</p>
+          <button onclick="obtenirTicket()">Réessayer</button>
+        `;
+        console.error("Erreur détaillée:", error);
       }
     }
   </script>
-
 </body>
 </html>
