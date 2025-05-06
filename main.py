@@ -33,16 +33,14 @@ class Ticket(BaseModel):
     service: str
     is_processed: bool = False
 
-@app.post("/api/tickets", response_model=Ticket)
+@app.post("/api/tickets")
 async def create_ticket(ticket: Ticket):
     try:
         ticket.id = str(uuid4())
         ticket_data = ticket.dict()
         tickets.append(ticket_data)
-        logger.info(f"Ticket créé: {ticket_data}")
         return ticket_data
     except Exception as e:
-        logger.error(f"Erreur création ticket: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/tickets", response_model=List[Ticket])

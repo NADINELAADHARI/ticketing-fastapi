@@ -99,15 +99,15 @@
       const service = document.getElementById("serviceSelect").value;
       const resultBox = document.getElementById("resultBox");
       
-      // Afficher le loading
       resultBox.style.display = "block";
       resultBox.innerHTML = '<p class="loading">Création de votre ticket en cours...</p>';
 
       try {
+        // URL ABSOLUE avec le bon endpoint
         const apiUrl = "https://ticketing-fastapi.onrender.com/api/tickets";
         
         const response = await fetch(apiUrl, {
-          method: "POST",
+          method: "POST",  // Bien spécifier POST
           headers: { 
             "Content-Type": "application/json",
             "Accept": "application/json"
@@ -119,43 +119,29 @@
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || "Erreur lors de la création du ticket");
+          const error = await response.json();
+          throw new Error(error.detail || "Erreur serveur");
         }
 
         const ticket = await response.json();
-
-        // Récupérer le nombre de tickets
-        const countResponse = await fetch(apiUrl + "/count");
-        const countData = await countResponse.json();
-        const peopleAhead = Math.max(0, countData.count - 1);
-        const estimatedTime = peopleAhead * 3;
-
+        
         // Afficher le résultat
         resultBox.innerHTML = `
-          <h2>Votre ticket</h2>
-          <div class="ticket-info">
-            <strong>Numéro :</strong> ${ticket.id}
-          </div>
+          <h2>Votre ticket #${ticket.id}</h2>
           <div class="ticket-info">
             <strong>Service :</strong> ${ticket.service}
           </div>
-          <div class="ticket-info">
-            <strong>Personnes devant vous :</strong> ${peopleAhead}
-          </div>
-          <div class="ticket-info">
-            <strong>Temps estimé :</strong> ${estimatedTime} minutes
-          </div>
           <button onclick="window.location.reload()">Nouveau Ticket</button>
         `;
+        
       } catch (error) {
         resultBox.innerHTML = `
           <p class="error">Erreur: ${error.message}</p>
           <button onclick="obtenirTicket()">Réessayer</button>
         `;
-        console.error("Erreur détaillée:", error);
+        console.error("Erreur API:", error);
       }
     }
-  </script>
+</script>
 </body>
 </html>
